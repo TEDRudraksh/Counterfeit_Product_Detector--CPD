@@ -160,36 +160,5 @@ def save_credentials(data):
     with open(CREDENTIAL_FILE, 'w') as f:
         json.dump(data, f, indent=4)
 
-@app.route('/signup', methods=['POST'])
-def signup():
-    data = request.form
-    role = data.get('role')
-    name = data.get('name')
-    email = data.get('email')
-    password = data.get('password')
 
-    creds = load_credentials()
-    user_type = 'users' if role == 'user' else 'manufacturers'
 
-    if any(u['email'] == email for u in creds[user_type]):
-        return jsonify({'status': 'error', 'message': 'Email already exists'}), 409
-
-    creds[user_type].append({'name': name, 'email': email, 'password': password})
-    save_credentials(creds)
-    return jsonify({'status': 'success', 'message': 'Signup successful'}), 200
-
-@app.route('/login', methods=['POST'])
-def login():
-    data = request.form
-    role = data.get('role')
-    email = data.get('email')
-    password = data.get('password')
-
-    creds = load_credentials()
-    user_type = 'users' if role == 'user' else 'manufacturers'
-
-    for user in creds[user_type]:
-        if user['email'] == email and user['password'] == password:
-            return jsonify({'status': 'success', 'name': user['name']}), 200
-
-    return jsonify({'status': 'error', 'message': 'Invalid credentials'}), 401
