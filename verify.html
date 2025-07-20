@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Product Verification</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(180deg, #eaf3fb 0%, #f8fbff 100%);
+      color: #2c3e50;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 60px auto;
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      padding: 40px;
+      text-align: center;
+    }
+
+    h2 {
+      color: #003366;
+      margin-bottom: 10px;
+    }
+
+    p {
+      font-size: 16px;
+      color: #555;
+    }
+
+    #reader {
+      width: 100%;
+      max-width: 320px;
+      margin: 20px auto;
+    }
+
+    #result {
+      margin-top: 20px;
+      font-size: 1.2em;
+      padding: 15px;
+      border-radius: 8px;
+      display: inline-block;
+      max-width: 80%;
+    }
+
+    .valid {
+      background-color: #e1f7e6;
+      color: #146c2e;
+      border: 1px solid #8fdca3;
+    }
+
+    .invalid {
+      background-color: #fdecea;
+      color: #a7282a;
+      border: 1px solid #f5b4b0;
+    }
+
+    input[type="file"] {
+      margin-top: 20px;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #d0e4f7;
+      font-size: 16px;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    button {
+      margin-top: 15px;
+      padding: 12px 20px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #005fcc;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h2>Verify Product</h2>
+    <p>Scan the product QR code below to check its authenticity.</p>
+
+    <div id="reader"></div>
+    <div id="result"></div>
+
+    <h3 style="margin-top: 40px;">Or Upload QR Code Image</h3>
+    <input type="file" id="qrImageInput" accept="image/*" />
+    <button onclick="uploadQRImage()">Upload and Verify</button>
+  </div>
+
+  <script>
+    const html5QrCode = new Html5Qrcode("reader");
+
+    function onScanSuccess(decodedText) {
+      html5QrCode.stop().then(() => {
+        verifyProduct(decodedText);
+      }).catch(err => {
+        console.error("Failed to stop scanner: ", err);
+      });
+    }
+
+    function verifyProduct(productId) {
+      fetch("http://localhost:5000/verify-product", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ product_id: productId })
+      })
+      .then(res => res.json())
+      .then(data => {
+        const resultDiv = document.getElementById("result");
+        if (data.status === "valid") {
+          resultDiv.className = "valid";
+          resultDiv.textContent = `✅ Product is authentic.`;
+        } else {
+          resultDiv.className = "invalid";
+          resultDiv.textContent = "❌ Product is counterfeit or not found!";
+        }
+      })
+      .catch(err => {
+        console.error("Verification failed:", err);
+        alert("Error verifying product");
+      });
+    }
+
+    Html5Qrcode.getCameras().then(devices => {
+      if (devices && devices.length) {
+        html5QrCode.start(
+          devices[0].id,
+          { fps: 10, qrbox: 250 },
+          onScanSuccess
+        );
+      }
+    }).catch(err => {
+      console.error("Camera initialization error:", err);
+      alert("Camera not accessible");
+    });
+
+    function uploadQRImage() {
+      const fileInput = document.getElementById('qrImageInput');
+      const file = fileInput.files[0];
+
+      if (!file) {
+        alert("Please choose an image with QR code.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("qr_image", file);
+
+      fetch("http://localhost:5000/upload-qr", {
+        method: "POST",
+        body: formData
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === "valid") {
+          alert(`✅ Product Verified!\nName: ${data.name}\nManufacturer: ${data.manufacturer}`);
+        } else {
+          alert("❌ Invalid or counterfeit product!");
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        alert("Something went wrong while verifying.");
+      });
+    }
+  </script>
+
+</body>
+</html>

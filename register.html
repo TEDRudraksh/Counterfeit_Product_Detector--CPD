@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Register Product</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(180deg, #eaf3fb 0%, #f8fbff 100%);
+      color: #2c3e50;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 60px auto;
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      padding: 40px;
+    }
+
+    h2 {
+      color: #003366;
+      margin-bottom: 30px;
+      text-align: center;
+    }
+
+    input[type="text"],
+    input[type="date"],
+    button {
+      width: 100%;
+      padding: 14px 16px;
+      margin: 12px 0;
+      border-radius: 8px;
+      border: 1px solid #d0e4f7;
+      font-size: 16px;
+    }
+
+    input:focus {
+      border-color: #3399ff;
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(51, 153, 255, 0.2);
+    }
+
+    button {
+      background-color: #007bff;
+      color: white;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #005fcc;
+    }
+
+    #qrCode {
+      margin-top: 30px;
+      text-align: center;
+    }
+
+    #qrCode img {
+      margin-top: 10px;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+    }
+
+    #downloadBtn {
+      display: none;
+      text-align: center;
+    }
+
+    #downloadBtn button {
+      background-color: #28a745;
+      margin-top: 20px;
+    }
+
+    #downloadBtn button:hover {
+      background-color: #1f7f38;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Register Product</h2>
+    <input type="text" id="product_id" placeholder="Product ID" />
+    <input type="text" id="name" placeholder="Product Name" />
+    <input type="text" id="manufacturer" placeholder="Manufacturer" />
+    <input type="text" id="batch_number" placeholder="Batch Number" />
+    <input type="date" id="production_date" placeholder="Production Date" />
+    <button onclick="registerProduct()">Register</button>
+
+    <div id="qrCode"></div>
+    <div id="downloadBtn">
+      <a href="#" download="product_qr_code.png">
+        <button>Download QR Code</button>
+      </a>
+    </div>
+  </div>
+
+  <script>
+    function registerProduct() {
+      const data = {
+        product_id: document.getElementById("product_id").value,
+        name: document.getElementById("name").value,
+        manufacturer: document.getElementById("manufacturer").value,
+        batch_number: document.getElementById("batch_number").value,
+        production_date: document.getElementById("production_date").value
+      };
+
+      fetch("http://localhost:5000/register-product", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      })
+      .then(response => response.json())
+      .then(res => {
+        alert(res.message);
+        if (res.message.includes("success")) {
+          const qrURL = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${data.product_id}`;
+          document.getElementById("qrCode").innerHTML = `
+            <p><strong>QR Code for this product:</strong></p>
+            <img id="qrImg" src="${qrURL}" alt="QR Code" />
+          `;
+          const downloadBtn = document.getElementById("downloadBtn");
+          downloadBtn.querySelector('a').href = qrURL;
+          downloadBtn.style.display = "block";
+        }
+      })
+      .catch(err => {
+        console.error("Error registering product:", err);
+        alert("Failed to register product.");
+      });
+    }
+  </script>
+</body>
+</html>
